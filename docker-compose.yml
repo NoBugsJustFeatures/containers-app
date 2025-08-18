@@ -1,0 +1,31 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - nginx
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/entrypoint.sh:/docker-entrypoint.d/setup-hosts.sh
+    extra_hosts:
+      - "mylaravelapp.local:172.20.0.1"
+
+  hosts-updater:
+    image: alpine
+    command: >
+      sh -c "echo '172.20.0.1 mylaravelapp.local' >> /etc/hosts"
+    cap_add:
+      - NET_ADMIN
+    network_mode: host
+    restart: unless-stopped
