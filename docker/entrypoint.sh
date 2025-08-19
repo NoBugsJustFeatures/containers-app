@@ -1,6 +1,6 @@
-#!/bin/sh
-# Add to container's /etc/hosts
-echo "172.20.0.1 mylaravelapp.local" >> /etc/hosts
+#!/bin/bash
+# Add host entry to container's /etc/hosts
+echo "127.0.0.1 mylaravelapp.local" >> /etc/hosts
 
-# Start original Nginx entrypoint
-exec /docker-entrypoint.sh "$@"
+# Start main command
+exec "$@"
