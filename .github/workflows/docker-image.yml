@@ -39,7 +39,8 @@ jobs:
       - name: Build & Push Docker images
         run: |
           docker compose build
-          docker compose push
+          docker tag containers-app-app ${{ secrets.DOCKERHUB_USERNAME }}/containers-app:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/containers-app-app:latest
 
       - name: Deploy Locally
         run: |
