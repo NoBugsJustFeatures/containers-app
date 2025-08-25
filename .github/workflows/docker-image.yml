@@ -63,11 +63,11 @@ jobs:
           from: GitHub Actions <github-actions@example.com>
           content_type: text/html
           body: |
-            Hello,<br><br>
-            The pipeline for repository <b>${{ github.repository }}</b> has finished.<br>
-            Status: <b>${{ job.status }}</b><br>
-            Commit: <b>${{ github.sha }}</b><br>
-            Branch: <b>${{ github.ref }}</b><br><br>
-            Regards,<br>
+            Hello me,
+            The pipeline for repository ${{ github.repository }} has finished.<br>
+            Status: ${{ job.status }}
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref }}
+            Regards,
             GitHub Actions
 
