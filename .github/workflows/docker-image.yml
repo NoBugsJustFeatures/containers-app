@@ -64,7 +64,7 @@ jobs:
           content_type: text/html
           body: |
             Hello me,
-            The pipeline for repository ${{ github.repository }} has finished.<br>
+            The pipeline for repository ${{ github.repository }} has finished.
             Status: ${{ job.status }}
             Commit: ${{ github.sha }}
             Branch: ${{ github.ref }}
