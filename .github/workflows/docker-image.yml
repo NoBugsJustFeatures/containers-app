@@ -13,38 +13,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Setup PHP to run Laravel tests
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring, bcmath, intl, pdo_mysql
 
-      # Install dependencies & run tests
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
+        run: composer install --prefer-dist --no-progress --optimize-autoloader
 
       - name: Run Laravel Tests
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
         run: php artisan test
 
-      # Login to DockerHub
       - name: Log in to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & push all services defined in docker-compose.yml
       - name: Build & Push Docker images
         run: |
           docker compose build
           docker compose push
 
-      # Deploy on remote server
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -52,7 +48,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /var/www/myproject
+            cd /var/www/containers-app || exit 1
+            git reset --hard
             git pull origin main
             docker compose pull
             docker compose up -d --remove-orphans
