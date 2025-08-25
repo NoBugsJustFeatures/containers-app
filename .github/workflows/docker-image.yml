@@ -43,6 +43,7 @@ jobs:
 
       - name: Deploy Locally
         run: |
+          git config --global --add safe.directory /var/www/containers-app
           cd /var/www/containers-app || exit 1
           git reset --hard
           git pull origin main
