@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-test-deploy:
-    runs-on: self-hosted   # runs directly on your PC
+    runs-on: self-hosted  
 
     steps:
       - name: Checkout repository
@@ -51,9 +51,9 @@ jobs:
           docker compose pull
           docker compose up -d --remove-orphans
 
-      - name: Send Email Notification
+      - name: Send Email Notification after run
         uses: dawidd6/action-send-mail@v3
-        if: always()  # always runs, even if previous steps failed
+        if: always()
         with:
           server_address: smtp.gmail.com
           server_port: 465
@@ -71,4 +71,6 @@ jobs:
             Branch: ${{ github.ref }}
             Regards,
             GitHub Actions
+
+      - name : Send Email 
 
