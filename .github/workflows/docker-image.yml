@@ -72,5 +72,5 @@ jobs:
             Regards,
             GitHub Actions
 
-      - name : Send Email 
+      # - name : Send Email 
 
