@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-test-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # runs directly on your PC
 
     steps:
       - name: Checkout repository
@@ -41,15 +41,10 @@ jobs:
           docker compose build
           docker compose push
 
-      - name: Deploy to Server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd /var/www/containers-app || exit 1
-            git reset --hard
-            git pull origin main
-            docker compose pull
-            docker compose up -d --remove-orphans
+      - name: Deploy Locally
+        run: |
+          cd /var/www/containers-app || exit 1
+          git reset --hard
+          git pull origin main
+          docker compose pull
+          docker compose up -d --remove-orphans
