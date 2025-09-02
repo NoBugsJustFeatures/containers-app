@@ -13,7 +13,7 @@ pipeline {
     }
 
     parameters {
-        choice(name: 'Server', choices: ['192.168.1.35'], description: 'Node to run on')
+        choice(name: 'Server', choices: ['192.168.1.4'], description: 'Node to run on')
         choice(name: 'Action', choices: ['Deploy','Backup','Rollback','Stop','Restart','Update'], description: 'Action to perform')
         string(name: 'Rollback_version', defaultValue: '', description: 'Rollback archive file if needed')
         string(name: 'Branch', defaultValue: 'main', description: 'Git branch or commit hash')
