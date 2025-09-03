@@ -1,39 +1,99 @@
-
-# This file is a template, and might need editing before it works on your project.
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/development/cicd/templates/
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Docker.gitlab-ci.yml
-# Build a Docker image with CI/CD and push to the GitLab registry.
-# Docker-in-Docker documentation: https://docs.gitlab.com/ci/docker/using_docker_build/
-#
-# This template uses one generic job with conditional builds
-# for the default branch and all other (MR) branches.
-docker-build:
-  # Use the official docker image.
-  image: docker:cli
-  stage: build
-  services:
-    - docker:dind
-  variables:
-    DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  before_script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-  # All branches are tagged with $DOCKER_IMAGE_NAME (defaults to commit ref slug)
-  # Default branch is also tagged with `latest`
-  script:
-    - docker build --pull -t "$DOCKER_IMAGE_NAME" .
-    - docker push "$DOCKER_IMAGE_NAME"
-    - |
-      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
-        docker tag "$DOCKER_IMAGE_NAME" "$CI_REGISTRY_IMAGE:latest"
-        docker push "$CI_REGISTRY_IMAGE:latest"
-      fi
-  # Run this job in a branch where a Dockerfile exists
+workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH
-      exists:
-        - Dockerfile
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    - when: never
+
+stages:
+  - checkout
+  - build
+  - backup
+  - rollback
+  - stop
+  - restart
+
+variables:
+  GIT_REPO: "https://github.com/NoBugsJustFeatures/containers-app.git"
+  COMPOSE_FILE: "docker-compose.yml"
+  BACKUP_DIR: "$CI_PROJECT_DIR/backups"
+
+default:
+  before_script:
+    - apt-get update -y && apt-get install -y git curl tar docker.io docker-compose-plugin
+    - chown -R gitlab-runner:gitlab-runner "$CI_PROJECT_DIR" || true
+    - chmod -R 775 "$CI_PROJECT_DIR" || true
+
+checkout:
+  stage: checkout
+  script:
+    - echo "Cloning repository..."
+    - if [ ! -d .git ]; then
+        git clone -b "${CI_COMMIT_REF_NAME}" "$GIT_REPO" . ;
+      else
+        git fetch origin "${CI_COMMIT_REF_NAME}" &&
+        git reset --hard "origin/${CI_COMMIT_REF_NAME}" ;
+      fi
+  tags:
+    - docker
+build_test:
+  stage: build
+  script:
+    - echo "Building Docker images and running tests..."
+    - docker compose -f "$COMPOSE_FILE" build
+    - docker compose -f "$COMPOSE_FILE" up -d
+    - docker compose ps
+  tags:
+    - docker
+
+backup:
+  stage: backup
+  script:
+    - mkdir -p "$BACKUP_DIR"
+    - TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    - tar -czvf "$BACKUP_DIR/backup_${TIMESTAMP}.tar.gz" .
+    - ls -1t "$BACKUP_DIR" | tail -n +4 | xargs -I {} rm -f "$BACKUP_DIR/{}"
+  artifacts:
+    paths:
+      - backups/
+  rules:
+    - when: always      
+    - when: manual      
+  tags:
+    - docker
+
+rollback:
+  stage: rollback
+  script:
+    - "echo 'Rolling back from archive: $ROLLBACK_VERSION'"
+    - "tar -xzvf \"$BACKUP_DIR/$ROLLBACK_VERSION\" -C \"$CI_PROJECT_DIR\""
+    - "docker compose -f \"$COMPOSE_FILE\" up -d --build"
+  rules:
+    - if: '$ROLLBACK_VERSION != ""'
+      when: always
+    - when: manual
+  tags:
+    - docker
 
 
-# Create new runner, create gitlab, pipeline yml gilab
+stop:
+  stage: stop
+  script:
+    - echo "Stopping services..."
+    - docker compose -f "$COMPOSE_FILE" down --remove-orphans -v
+  rules:
+    - when: manual      # manual only
+  tags:
+    - docker
+
+restart:
+  stage: restart
+  script:
+    - echo "Restarting services..."
+    - docker compose -f "$COMPOSE_FILE" down
+    - docker compose -f "$COMPOSE_FILE" up -d
+  rules:
+    - when: manual      # manual only
+  tags:
+    - docker
