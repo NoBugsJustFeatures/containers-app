@@ -77,7 +77,7 @@ pipeline {
                             mkdir -p ${BACKUP_DIR}
                             tar -czvf ${BACKUP_DIR}/backup_${TIMESTAMP}.tar.gz .
                             # Keep only latest 3 backups
-                            ls -1t ${BACKUP_DIR} | tail -n +4 | xargs -I {} rm -f ${BACKUP_DIR}/{}
+                            ls -1t ${BACKUP_DIR} | tail -n +4 | xargs -r -I {} rm -f ${BACKUP_DIR}/{}
                         """
                     }
                 }
