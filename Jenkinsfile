@@ -67,22 +67,26 @@ pipeline {
         }
 
         stage('Backup') {
-            when { expression { params.Action == 'Backup' } }
             steps {
                 dir("${WORKSPACE}") {
                     script {
                         env.TIMESTAMP = sh(script: "date +%Y%m%d%H%M%S", returnStdout: true).trim()
                         env.BACKUP_DIR = "${WORKSPACE}/backups"
+                        
                         sh """
                             mkdir -p ${BACKUP_DIR}
-                            tar -czvf ${BACKUP_DIR}/backup_${TIMESTAMP}.tar.gz .
-                            # Keep only latest 3 backups
-                            ls -1t ${BACKUP_DIR} | tail -n +4 | xargs -r -I {} rm -f ${BACKUP_DIR}/{}
+        
+                            # Create backup tar.gz
+                            tar -czf ${BACKUP_DIR}/backup_${TIMESTAMP}.tar.gz . || true
+        
+                            # Keep only latest 3 backups, ignore errors if none to delete
+                            ls -1t ${BACKUP_DIR} | tail -n +4 | xargs -r -I {} rm -f ${BACKUP_DIR}/{} || true
                         """
                     }
                 }
             }
         }
+
 
         stage('Rollback') {
             when { expression { params.Action == 'Rollback' && params.Rollback_version != '' } }
